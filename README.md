@@ -1,50 +1,140 @@
-# Welcome to your Expo app 👋
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+💊 LembraMed
 
-## Get started
+LembraMed é um aplicativo mobile desenvolvido com React Native e Expo, criado para ajudar os usuários a lembrar de tomar seus medicamentos corretamente e nos horários certos. O app permite cadastrar medicamentos com horários recorrentes, enviar notificações locais e funciona mesmo com o celular bloqueado, garantindo que nenhuma dose seja esquecida.
 
-1. Install dependencies
+# 🗂 Estrutura do Projeto
 
-   ```bash
-   npm install
-   ```
+LembraMed/
+├── app/                                # Diretório principal das telas e rotas
+│   ├── (tabs)/                         # Navegação com abas principais
+│   │   ├── _layout.tsx                 # Layout das abas
+│   │   ├── Alarmes.tsx                 # Tela principal com lista de alarmes
+│   │   ├── Medicamentos.tsx            # Tela de cadastro de medicamento
+│   ├── AlarmNotification.tsx           # Tela exibida quando o alarme toca
+│   ├── editAlarmes.tsx                 # Tela de edição de alarmes
+│   ├── app.tsx                         # Inicialização do app
+│   ├── index.tsx                       # Tela inicial (pode redirecionar)
+│   └── _layout.tsx                     # Layout geral do roteamento
+│
+├── assets/
+│   ├── fonts/                          # Fontes personalizadas (caso existam)
+│   └── images/
+│       └── alarm.mp3                   # Som de alarme personalizado
+│
+├── components/
+│   └── TimePicker.tsx                  # Componente reutilizável de hora
+│
+├── utils/
+│   ├── notifications.ts                # Lógica para agendar notificações
+│   └── storage.ts                      # Funções de armazenamento local
+│
+├── node_modules/
+├── package.json
+├── app.json
+├── README.md
 
-2. Start the app
+# 📱 Funcionalidades
 
-   ```bash
-    npx expo start
-   ```
+✅ Cadastro de medicamentos com:
 
-In the output, you'll find options to open the app in a
+-Nome do remédio
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+-Dosagem
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+-Tipo (Comprimido, ML, etc.)
 
-## Get a fresh project
+-Horário inicial
 
-When you're ready, run:
+-Recorrência configurável (6/6h, 8/8h, 12/12h, 24/24h)
 
-```bash
-npm run reset-project
-```
+✅ Cálculo automático dos horários com base na recorrência
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+✅ Visualização da lista de alarmes salvos
 
-## Learn more
+✅ Edição de alarmes existentes
 
-To learn more about developing your project with Expo, look at the following resources:
+✅ Exclusão de alarmes
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+✅ Alarmes funcionais com notificações locais
 
-## Join the community
+✅ Alarme aparece mesmo com o celular bloqueado
 
-Join our community of developers creating universal apps.
+✅ Tela de alarme com botão:
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+-Tomei meu remédio
+
+# 🧠 Tecnologias Utilizadas
+
+-React Native
+
+-Expo
+
+-expo-router
+
+-AsyncStorage
+
+-@react-native-community/datetimepicker
+
+-@react-native-picker/picker
+
+-expo-notifications
+
+----
+
+# 🚀 Como Executar o Projeto
+
+Pré-requisitos:
+
+Node.js instalado
+Expo CLI instalada globalmente: npm install -g expo-cli
+Emulador Android/iOS ou dispositivo físico com o app Expo Go
+
+Passos:
+
+-Clone o repositório
+
+git clone https://github.com/seu-usuario/lembramed.git
+cd lembramed
+
+-Instale as dependências
+
+npm install
+
+-Execute o projeto
+
+npx expo start
+
+- Abra o app escaneando o QR Code com o Expo Go ou use um emulador.
+
+# 🔔 Permissões Necessárias
+
+Para funcionar corretamente, o app solicita as seguintes permissões:
+
+Permissão para notificações locais
+
+Permissão para exibir alarmes mesmo com a tela bloqueada
+
+# 📦 Armazenamento Local
+
+Todos os dados são armazenados localmente utilizando AsyncStorage. Isso garante persistência mesmo com o app fechado, sem necessidade de conexão com internet.
+
+# 🧪 Testes
+
+Para testar os alarmes:
+
+Cadastre um medicamento com uma recorrência curta (ex: 6/6h ou 8/8h).
+
+Aguarde ou ajuste o horário inicial para alguns minutos à frente da hora atual.
+
+Verifique se a notificação é disparada corretamente.
+
+# 🧠 Futuras Melhorias
+
+Sincronização com a nuvem (Firebase ou MongoDB)
+
+Integração com smartwatch
+
+Histórico de medicamentos tomados
+
+Suporte a múltiplos usuários
