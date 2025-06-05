@@ -4,7 +4,8 @@
 LembraMed é um aplicativo mobile desenvolvido com React Native e Expo, criado para ajudar os usuários a lembrar de tomar seus medicamentos corretamente e nos horários certos. O app permite cadastrar medicamentos com horários recorrentes, enviar notificações locais e funciona mesmo com o celular bloqueado, garantindo que nenhuma dose seja esquecida.
 
 # 🗂 Estrutura do Projeto
-
+```shell
+'
 LembraMed/
 ├── app/                                # Diretório principal das telas e rotas
 │   ├── (tabs)/                         # Navegação com abas principais
@@ -33,7 +34,7 @@ LembraMed/
 ├── package.json
 ├── app.json
 ├── README.md
-
+```
 
 # 📱 Funcionalidades
 
