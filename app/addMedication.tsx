@@ -1,116 +1,103 @@
-// app/AddMedication.tsx
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
-import * as Notifications from 'expo-notifications';
-import TimePicker from '../components/TimePicker'; // Assumindo que o TimePicker é um componente personalizado
-import DropDownPicker from 'react-native-dropdown-picker';
-
-// Importando o tipo correto para o trigger
-const { SchedulableTriggerInputTypes } = Notifications;
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const AddMedication = () => {
-  const [name, setName] = useState('');
+  const [medicationName, setMedicationName] = useState('');
   const [dosage, setDosage] = useState('');
-  const [time, setTime] = useState(new Date());
-  const [unit, setUnit] = useState('comprimidos');
-  const [open, setOpen] = useState(false);
-  const [items, setItems] = useState([
-    { label: 'comprimidos', value: 'comprimidos' },
-    { label: 'mL', value: 'mL' },
-  ]);
+  const [startTime, setStartTime] = useState('');
+  const [recurrence, setRecurrence] = useState('8/8h');
   const router = useRouter();
 
   const handleSave = async () => {
+    if (!medicationName || !dosage || !startTime) {
+      Alert.alert('Preencha todos os campos');
+      return;
+    }
+
+    // Calculando os horários com base na recorrência
+    const times = calculateTimes(startTime, recurrence);
+
     const newMedication = {
-      id: Date.now().toString(),
-      name,
-      dosage: `${dosage} ${unit}`,
-      time: time.toString(),
+      id: new Date().toISOString(),  // Gerando um ID único
+      name: medicationName,
+      dosage,
+      recurrence,
+      times,
     };
 
-    // Carregar as medicações já salvas
+    // Salvar no AsyncStorage
     const storedMedications = await AsyncStorage.getItem('medications');
     const medications = storedMedications ? JSON.parse(storedMedications) : [];
-    
-    // Adicionar o novo alarme
     medications.push(newMedication);
     await AsyncStorage.setItem('medications', JSON.stringify(medications));
 
-    // Agendar a notificação para o novo alarme
-    await scheduleNotification(newMedication);
-
-    // Navegar para a tela de alarmes
     router.push('/Alarmes');
   };
 
-  // Função para agendar a notificação
-  const scheduleNotification = async (medication: any) => {
-    const triggerDate = new Date(medication.time); // Definir o horário do alarme
+  const calculateTimes = (startTime: string, recurrence: string) => {
+    const times = [];
+    const startDate = new Date(startTime);
 
-    // Definindo trigger adequado com o tipo correto
-    const trigger: Notifications.TimeIntervalTriggerInput = {
-      type: SchedulableTriggerInputTypes.TIME_INTERVAL, // Usando o tipo correto para o trigger
-      seconds: Math.floor((triggerDate.getTime() - new Date().getTime()) / 1000), // Diferença em segundos entre agora e o horário do alarme
-      repeats: false, // Defina como true se você quiser que a notificação se repita
-    };
+    // Ajustar o incremento com base na recorrência
+    let increment;
+    switch (recurrence) {
+      case '8/8h':
+        increment = 8 * 60 * 60 * 1000;  // 8 horas em milissegundos
+        break;
+      case '6/6h':
+        increment = 6 * 60 * 60 * 1000;  // 6 horas em milissegundos
+        break;
+      case '12/12h':
+        increment = 12 * 60 * 60 * 1000; // 12 horas em milissegundos
+        break;
+      case '24/24h':
+        increment = 24 * 60 * 60 * 1000; // 24 horas em milissegundos
+        break;
+      default:
+        increment = 24 * 60 * 60 * 1000; // Caso padrão, 24 horas
+    }
 
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: 'Hora do Remédio!',
-        body: `${medication.name} - ${medication.dosage}`,
-        sound: 'default', // Som padrão
-      },
-      trigger, // Usando o trigger que calcula a diferença em segundos
-    });
+    // Gerar os horários com base na recorrência
+    for (let i = 0; i < 5; i++) {  // Gerar 5 horários para o alarme (exemplo)
+      const newTime = new Date(startDate.getTime() + increment * i);
+      times.push(newTime.toISOString());
+    }
+
+    return times;
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Adicionar Novo Alarme</Text>
-
+      <Text style={styles.title}>Adicionar Medicação</Text>
       <TextInput
         style={styles.input}
-        placeholder="Nome da Medicação"
-        value={name}
-        onChangeText={setName}
-        placeholderTextColor="#999"
+        placeholder="Nome do medicamento"
+        value={medicationName}
+        onChangeText={setMedicationName}
       />
-
-      <View style={styles.row}>
-        <TextInput
-          style={[styles.input, styles.dosageInput]}
-          placeholder="Dosagem"
-          value={dosage}
-          onChangeText={setDosage}
-          placeholderTextColor="#999"
-          keyboardType="numeric"
-        />
-
-        <DropDownPicker
-          open={open}
-          value={unit}
-          items={items}
-          setOpen={setOpen}
-          setValue={setUnit}
-          setItems={setItems}
-          style={styles.dropdown}
-          textStyle={styles.dropdownText}
-          containerStyle={{ flex: 1 }}
-          dropDownDirection="TOP"
-        />
-      </View>
-
-      <Text style={styles.label}>
-        Hora selecionada: {`${time.getHours()}:${time.getMinutes().toString().padStart(2, '0')}`}
-      </Text>
-
-      <TimePicker time={time} setTime={setTime} />
-
-      <View style={styles.button}>
-        <Button title="Salvar" onPress={handleSave} />
-      </View>
+      <TextInput
+        style={styles.input}
+        placeholder="Dosagem"
+        value={dosage}
+        onChangeText={setDosage}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Hora inicial (ex: 08:00)"
+        value={startTime}
+        onChangeText={setStartTime}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Recorrência (ex: 8/8h)"
+        value={recurrence}
+        onChangeText={setRecurrence}
+      />
+      <TouchableOpacity onPress={handleSave} style={styles.button}>
+        <Text style={styles.buttonText}>Salvar</Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -118,46 +105,33 @@ const AddMedication = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 24,
+    padding: 20,
     justifyContent: 'center',
     backgroundColor: '#fff',
   },
   title: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: 'bold',
+    marginBottom: 20,
     textAlign: 'center',
-    marginBottom: 32,
   },
   input: {
+    height: 40,
+    borderColor: '#ccc',
     borderWidth: 1,
-    borderRadius: 8,
-    padding: 14,
-    fontSize: 20,
-    marginBottom: 16,
-    borderColor: '#ccc',
-  },
-  label: {
-    fontSize: 18,
-    textAlign: 'center',
-    marginVertical: 16,
-  },
-  row: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 16,
-  },
-  dosageInput: {
-    flex: 1,
-  },
-  dropdown: {
-    borderColor: '#ccc',
-    borderRadius: 8,
-  },
-  dropdownText: {
-    fontSize: 20,
+    marginBottom: 12,
+    paddingLeft: 10,
+    borderRadius: 6,
   },
   button: {
-    marginTop: 20,
+    backgroundColor: '#4CAF50',
+    padding: 10,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  buttonText: {
+    color: '#fff',
+    fontWeight: 'bold',
   },
 });
 

@@ -1,83 +1,134 @@
-// app/Alarmes.tsx
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 
-export default function Alarmes() {
-  const [alarms, setAlarms] = useState<any[]>([]);
+const Alarmes = () => {
+  const [medications, setMedications] = useState<any[]>([]);
   const router = useRouter();
 
-  useEffect(() => {
-    const loadAlarms = async () => {
-      // Carregar os alarmes corretamente usando a chave 'medications'
-      const storedAlarms = await AsyncStorage.getItem('medications');
-      if (storedAlarms) {
-        setAlarms(JSON.parse(storedAlarms));
-      }
-    };
+  const loadMedications = async () => {
+    const storedMedications = await AsyncStorage.getItem('medications');
+    if (storedMedications) {
+      setMedications(JSON.parse(storedMedications));
+    }
+  };
 
-    loadAlarms();
-  }, []);
+  useFocusEffect(
+    React.useCallback(() => {
+      loadMedications();
+    }, [])
+  );
 
-  const handleEdit = (id: string) => {
-    router.push(`/editMedication/${id}`);
+  const handleEdit = (medication: any) => {
+    router.push({
+      pathname: '/addMedication',
+      params: { medication: JSON.stringify(medication) },
+    });
+  };
+
+  const handleDelete = (id: string) => {
+    Alert.alert(
+      'Confirmar exclusão',
+      'Tem certeza que deseja excluir este alarme?',
+      [
+        {
+          text: 'Não',
+          style: 'cancel',
+        },
+        {
+          text: 'Sim',
+          onPress: async () => {
+            const filtered = medications.filter((item) => item.id !== id);
+            await AsyncStorage.setItem('medications', JSON.stringify(filtered));
+            setMedications(filtered);
+          },
+        },
+      ]
+    );
+  };
+
+  const formatTime = (time: string) => {
+    const date = new Date(time);
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    return `${hours}:${minutes}`;
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>LembraMed</Text>
-      <FlatList
-        data={alarms}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <TouchableOpacity onPress={() => handleEdit(item.id)} style={styles.item}>
-            <Text style={styles.medicationName}>{item.name}</Text>
-            <Text style={styles.timeText}>
-              {new Date(item.time).toLocaleTimeString([], {
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
-            </Text>
+    <ScrollView style={styles.container}>
+      <Text style={styles.title}>Alarmes Salvos</Text>
+      {medications.map((medication) => (
+        <View key={medication.id} style={styles.medication}>
+          <Text style={styles.medicationName}>{medication.name}</Text>
+          <Text>Dosagem: {medication.dosage}</Text>
+          <Text>Recorrência: {medication.recurrence}</Text>
+          <Text>Horários:</Text>
+          {/* Exibindo os horários lado a lado */}
+          <View style={styles.timesContainer}>
+            {medication.times?.map((time: string, index: number) => (
+              <Text key={index} style={styles.timeText}>{formatTime(time)}</Text>
+            ))}
+          </View>
+          <TouchableOpacity onPress={() => handleEdit(medication)} style={[styles.button, styles.editButton]}>
+            <Text style={styles.buttonText}>Editar</Text>
           </TouchableOpacity>
-        )}
-      />
-    </View>
+          <TouchableOpacity onPress={() => handleDelete(medication.id)} style={[styles.button, styles.deleteButton]}>
+            <Text style={styles.buttonText}>Excluir</Text>
+          </TouchableOpacity>
+        </View>
+      ))}
+    </ScrollView>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    padding: 16, 
-    backgroundColor: '#f5f5f5', // Alterado para fundo mais suave
+  container: {
+    padding: 24,
+    flex: 1,
+    backgroundColor: '#fff',
   },
-  title: { 
-    fontSize: 26, 
-    fontWeight: 'bold', 
-    marginBottom: 24, 
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
     textAlign: 'center',
-    color: '#333', // Cor mais suave para o título
+    marginBottom: 32,
   },
-  item: { 
-    padding: 16, 
-    backgroundColor: '#fff', 
-    marginBottom: 12, 
-    borderRadius: 8, 
-    shadowColor: '#000', 
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2, 
-    shadowRadius: 4, 
-    elevation: 2, // Adicionado efeito de sombra
+  medication: {
+    marginBottom: 20,
+    borderBottomWidth: 1,
+    paddingBottom: 10,
   },
   medicationName: {
-    fontSize: 18,
     fontWeight: 'bold',
-    color: '#333', // Melhor contraste para o nome do medicamento
+    fontSize: 18,
+  },
+  button: {
+    padding: 10,
+    borderRadius: 6,
+    marginTop: 10,
+    alignItems: 'center',
+  },
+  editButton: {
+    backgroundColor: '#007bff',
+  },
+  deleteButton: {
+    backgroundColor: '#dc3545',
+  },
+  buttonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  timesContainer: {
+    flexDirection: 'row', // Exibir horários lado a lado
+    flexWrap: 'wrap', // Quebrar linha se necessário
+    marginVertical: 10,
   },
   timeText: {
     fontSize: 16,
-    color: '#666', // Cor mais suave para o horário
-    marginTop: 4, // Pequeno espaço entre o nome e o horário
+    fontWeight: 'bold',
+    marginRight: 10, // Espaçamento entre os horários
   },
 });
+
+export default Alarmes;

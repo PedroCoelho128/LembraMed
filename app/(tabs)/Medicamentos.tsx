@@ -1,81 +1,156 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  Alert,
+  StyleSheet,
+  Platform,
+} from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { Picker } from '@react-native-picker/picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import TimePicker from '../../components/TimePicker';
 import { useRouter } from 'expo-router';
-import DropDownPicker from 'react-native-dropdown-picker';
 
 const AddMedication = () => {
-  const [name, setName] = useState('');
+  const [medicationName, setMedicationName] = useState('');
   const [dosage, setDosage] = useState('');
-  const [time, setTime] = useState(new Date());
-  const [unit, setUnit] = useState('comprimidos');
-  const [open, setOpen] = useState(false);
-  const [items, setItems] = useState([
-    { label: 'Comprimidos', value: 'Comprimidos' },
-    { label: 'ml', value: 'ml' },
-  ]);
+  const [recurrence, setRecurrence] = useState('8/8h');
+  const [type, setType] = useState('Comprimido');
+  const [startTime, setStartTime] = useState(new Date());
+  const [showTimePicker, setShowTimePicker] = useState(false);
   const router = useRouter();
 
   const handleSave = async () => {
+    if (!medicationName || !dosage) {
+      Alert.alert('Preencha todos os campos');
+      return;
+    }
+
+    const times = calculateTimes(startTime, recurrence);
+
     const newMedication = {
-      id: Date.now().toString(),
-      name,
-      dosage: `${dosage} ${unit}`,
-      time: time.toString(),
+      id: new Date().toISOString(),
+      name: medicationName,
+      dosage,
+      recurrence,
+      type,
+      times,
     };
-    const storedMedications = await AsyncStorage.getItem('medications');
-    const medications = storedMedications ? JSON.parse(storedMedications) : [];
-    medications.push(newMedication);
-    await AsyncStorage.setItem('medications', JSON.stringify(medications));
+
+    const stored = await AsyncStorage.getItem('medications');
+    const meds = stored ? JSON.parse(stored) : [];
+    meds.push(newMedication);
+    await AsyncStorage.setItem('medications', JSON.stringify(meds));
+
     router.push('/Alarmes');
+  };
+
+  const calculateTimes = (initialTime: Date, recurrence: string) => {
+    const times = [];
+    let incrementHours = 0;
+
+    switch (recurrence) {
+      case '6/6h':
+        incrementHours = 6;
+        break;
+      case '8/8h':
+        incrementHours = 8;
+        break;
+      case '12/12h':
+        incrementHours = 12;
+        break;
+      case '24/24h':
+        incrementHours = 24;
+        break;
+    }
+
+    const quantity = 24 / incrementHours;
+
+    for (let i = 0; i < quantity; i++) {
+      const newTime = new Date(initialTime.getTime() + i * incrementHours * 60 * 60 * 1000);
+      times.push(newTime.toISOString());
+    }
+
+    return times;
+  };
+
+  const formatTime = (date: Date) => {
+    return `${date.getHours().toString().padStart(2, '0')}:${date
+      .getMinutes()
+      .toString()
+      .padStart(2, '0')}`;
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Adicionar Novo Alarme</Text>
+      <Text style={styles.title}>Adicionar Medicação</Text>
 
       <TextInput
         style={styles.input}
-        placeholder="Nome da Medicação"
-        value={name}
-        onChangeText={setName}
-        placeholderTextColor="#999"
+        placeholder="Nome do medicamento"
+        value={medicationName}
+        onChangeText={setMedicationName}
       />
 
-      <View style={styles.row}>
-        <TextInput
-          style={[styles.input, styles.dosageInput]}
-          placeholder="Dosagem"
-          value={dosage}
-          onChangeText={setDosage}
-          placeholderTextColor="#999"
-          keyboardType="numeric"
+      <TextInput
+        style={styles.input}
+        placeholder="Dosagem"
+        value={dosage}
+        onChangeText={setDosage}
+      />
+
+      {/* Hora inicial */}
+      <TouchableOpacity
+        onPress={() => setShowTimePicker(true)}
+        style={styles.timePickerButton}
+      >
+        <Text style={styles.timePickerText}>
+          Hora inicial: {formatTime(startTime)}
+        </Text>
+      </TouchableOpacity>
+
+      {showTimePicker && (
+        <DateTimePicker
+          value={startTime}
+          mode="time"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          is24Hour
+          onChange={(event, selectedDate) => {
+            setShowTimePicker(false);
+            if (selectedDate) setStartTime(selectedDate);
+          }}
         />
+      )}
 
-        <DropDownPicker
-          open={open}
-          value={unit}
-          items={items}
-          setOpen={setOpen}
-          setValue={setUnit}
-          setItems={setItems}
-          style={styles.dropdown}
-          textStyle={styles.dropdownText}
-          containerStyle={{ flex: 1 }}
-          dropDownDirection="TOP"
-        />
-      </View>
+      {/* Recorrência */}
+      <Text style={styles.label}>Recorrência</Text>
+      <Picker
+        selectedValue={recurrence}
+        style={styles.picker}
+        onValueChange={(itemValue) => setRecurrence(itemValue)}
+      >
+        <Picker.Item label="8/8h" value="8/8h" />
+        <Picker.Item label="6/6h" value="6/6h" />
+        <Picker.Item label="12/12h" value="12/12h" />
+        <Picker.Item label="24/24h" value="24/24h" />
+      </Picker>
 
-      <Text style={styles.label}>
-        Hora selecionada: {`${time.getHours()}:${time.getMinutes().toString().padStart(2, '0')}`}
-      </Text>
+      {/* Tipo */}
+      <Text style={styles.label}>Tipo</Text>
+      <Picker
+        selectedValue={type}
+        style={styles.picker}
+        onValueChange={(itemValue) => setType(itemValue)}
+      >
+        <Picker.Item label="Comprimido" value="Comprimido" />
+        <Picker.Item label="ML" value="ML" />
+      </Picker>
 
-      <TimePicker time={time} setTime={setTime} />
-
-      <View style={styles.button}>
-        <Button title="Salvar" onPress={handleSave} />
-      </View>
+      <TouchableOpacity onPress={handleSave} style={styles.button}>
+        <Text style={styles.buttonText}>Salvar</Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -84,45 +159,49 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 24,
-    justifyContent: 'center',
     backgroundColor: '#fff',
+    justifyContent: 'center',
   },
   title: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: 'bold',
+    marginBottom: 24,
     textAlign: 'center',
-    marginBottom: 32,
   },
   input: {
     borderWidth: 1,
-    borderRadius: 8,
-    padding: 14,
-    fontSize: 20,
-    marginBottom: 16,
     borderColor: '#ccc',
+    padding: 10,
+    marginBottom: 12,
+    borderRadius: 6,
+  },
+  picker: {
+    height: 50,
+    marginBottom: 12,
   },
   label: {
-    fontSize: 22, // Tamanho da fonte aumentado para a Hora Selecionada
-    textAlign: 'center',
-    marginVertical: 16,
+    fontWeight: 'bold',
+    marginTop: 10,
   },
-  row: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 16,
+  timePickerButton: {
+    padding: 12,
+    backgroundColor: '#eee',
+    borderRadius: 6,
+    marginBottom: 12,
   },
-  dosageInput: {
-    width: 120, // Largura ajustada para diminuir a área
-  },
-  dropdown: {
-    borderColor: '#ccc',
-    borderRadius: 8,
-  },
-  dropdownText: {
-    fontSize: 20,
+  timePickerText: {
+    fontSize: 16,
   },
   button: {
-    marginTop: 20,
+    backgroundColor: '#4CAF50',
+    padding: 12,
+    borderRadius: 6,
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  buttonText: {
+    color: '#fff',
+    fontWeight: 'bold',
   },
 });
 
