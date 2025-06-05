@@ -98,7 +98,7 @@ Passos:
 
 git clone https://github.com/PedroCoelho128/LembraMed
 
-cd lembramed
+cd LembraMed
 
 -Instale as dependências
 
