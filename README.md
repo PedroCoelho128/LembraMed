@@ -96,7 +96,7 @@ Passos:
 
 -Clone o repositório
 
-git clone https://github.com/seu-usuario/lembramed.git
+git clone https://github.com/PedroCoelho128/LembraMed
 cd lembramed
 
 -Instale as dependências
