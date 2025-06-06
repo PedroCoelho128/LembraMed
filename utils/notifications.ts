@@ -1,39 +1,66 @@
 import * as Notifications from 'expo-notifications';
-import { Platform } from 'react-native';
-import * as Device from 'expo-device';
 
-export async function registerForPushNotificationsAsync() {
-  let token;
+// Configura a categoria para o botão "Tomei meu remédio"
+export async function configurarCategoriaNotificacao() {
+  await Notifications.setNotificationCategoryAsync('remedio', [
+    {
+      identifier: 'tomado',
+      buttonTitle: 'Tomei meu remédio',
+      options: {
+        isDestructive: false,
+        opensAppToForeground: true,
+      },
+    },
+  ]);
+}
 
-  if (Device.isDevice) {
-    const { status: existingStatus } = await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
+// Função para calcular horários da recorrência (exemplo para 24h)
+function calcularHorariosRecorrencia(inicio: Date, intervaloHoras: number): Date[] {
+  const horarios: Date[] = [];
+  const agora = new Date();
+  const hoje = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate());
 
-    if (existingStatus !== 'granted') {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
+  for (let i = 0; i < 24; i += intervaloHoras) {
+    const proximoHorario = new Date(hoje);
+    proximoHorario.setHours(inicio.getHours() + i, inicio.getMinutes(), 0, 0);
+    if (proximoHorario > agora) {
+      horarios.push(proximoHorario);
     }
-
-    if (finalStatus !== 'granted') {
-      alert('Permissão para notificações foi negada.');
-      return;
-    }
-
-    token = (await Notifications.getExpoPushTokenAsync()).data;
-    console.log('Token de notificação:', token);
-  } else {
-    alert('Você precisa usar um dispositivo físico para receber notificações.');
   }
+  return horarios;
+}
 
-  if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync('default', {
-      name: 'default',
-      importance: Notifications.AndroidImportance.HIGH,
-      vibrationPattern: [0, 250, 250, 250],
-      lightColor: '#FF231F7C',
-      // REMOVA o 'sound' aqui para usar som padrão
+// Função principal para agendar notificações considerando horários já tomados
+export async function agendarNotificacoes(
+  alarmId: string,
+  nome: string,
+  horaInicial: Date,
+  intervaloHoras: number,
+  takenTimes: string[] = []
+) {
+  await configurarCategoriaNotificacao();
+
+  // Cancela todas notificações antigas para evitar duplicatas
+  await Notifications.cancelAllScheduledNotificationsAsync();
+
+  const notificacoes = calcularHorariosRecorrencia(horaInicial, intervaloHoras);
+
+  for (const dataNotificacao of notificacoes) {
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: 'Hora do remédio 💊',
+        body: `Está na hora de tomar: ${nome}`,
+        sound: true,
+        categoryIdentifier: 'remedio',
+        data: { medicationName: nome },
+      },
+      trigger: {
+        type: 'calendar',
+        hour: dataNotificacao.getHours(),
+        minute: dataNotificacao.getMinutes(),
+        second: 0,
+        repeats: true,
+      },
     });
   }
-
-  return token;
 }

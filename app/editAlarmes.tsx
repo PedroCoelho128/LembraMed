@@ -5,7 +5,6 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Picker } from '@react-native-picker/picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
-// Define o tipo da medicação para tipagem TypeScript
 interface Medication {
   id: string;
   name: string;
@@ -15,7 +14,6 @@ interface Medication {
   times: string[];
 }
 
-// Dicionário que converte a recorrência (ex: '8/8h') em número de horas
 const recurrenceHours: Record<string, number> = {
   '8/8h': 8,
   '6/6h': 6,
@@ -24,13 +22,9 @@ const recurrenceHours: Record<string, number> = {
 };
 
 const EditAlarmes = () => {
-  // Recupera o parâmetro 'medication' da rota
   const { medication } = useLocalSearchParams<{ medication: string }>();
-
-  // Converte a string JSON em objeto JavaScript
   const parsedMedication = medication ? JSON.parse(medication) : null;
 
-  // Função para converter string "HH:mm" em Date
   const getDateFromTimeString = (timeStr: string): Date => {
     const now = new Date();
     const [hours, minutes] = timeStr.split(':').map(Number);
@@ -41,12 +35,10 @@ const EditAlarmes = () => {
     return now;
   };
 
-  // Inicializa o estado startTime com a hora salva ou com a hora atual
   const initialStartTime = parsedMedication?.times && parsedMedication.times.length > 0
     ? getDateFromTimeString(parsedMedication.times[0])
     : new Date();
 
-  // Estados locais com os valores iniciais preenchidos a partir do parâmetro
   const [medicationName, setMedicationName] = useState<string>(parsedMedication?.name || '');
   const [dosage, setDosage] = useState<string>(parsedMedication?.dosage || '');
   const [recurrence, setRecurrence] = useState<string>(parsedMedication?.recurrence || '');
@@ -54,9 +46,8 @@ const EditAlarmes = () => {
   const [startTime, setStartTime] = useState<Date>(initialStartTime);
   const [showTimePicker, setShowTimePicker] = useState(false);
 
-  const router = useRouter(); // Navegação entre telas
+  const router = useRouter();
 
-  // Função para formatar o horário no formato HH:mm
   const formatTime = (date: Date): string => {
     return `${date.getHours().toString().padStart(2, '0')}:${date
       .getMinutes()
@@ -64,10 +55,9 @@ const EditAlarmes = () => {
       .padStart(2, '0')}`;
   };
 
-  // Calcula os horários com base na recorrência e hora inicial
   const calculateTimes = (initialTime: Date, recurrence: string) => {
     const times = [];
-    let incrementHours = recurrenceHours[recurrence];
+    const incrementHours = recurrenceHours[recurrence];
 
     const quantity = 24 / incrementHours;
 
@@ -79,17 +69,40 @@ const EditAlarmes = () => {
     return times;
   };
 
-  // Salva as alterações no AsyncStorage
+  // Validação de dosagem: apenas números e até 10 caracteres (ajuste se quiser)
+  const validateDosage = (value: string) => {
+    const maxLength = 10;
+    const numericRegex = /^[0-9]*\.?[0-9]*$/; // aceita números decimais
+    if (value.length > maxLength) return false;
+    if (!numericRegex.test(value)) return false;
+    return true;
+  };
+
   const handleSave = async () => {
-    if (!medicationName || !dosage || !recurrence || !type) {
-      Alert.alert('Erro', 'Por favor, preencha todos os campos.');
+    // Validações
+    if (!medicationName.trim()) {
+      Alert.alert('Erro', 'Nome do medicamento não pode estar vazio.');
+      return;
+    }
+    if (!dosage.trim()) {
+      Alert.alert('Erro', 'Dosagem não pode estar vazia.');
+      return;
+    }
+    if (!validateDosage(dosage.trim())) {
+      Alert.alert('Erro', 'Dosagem deve ser um número válido com até 10 caracteres.');
+      return;
+    }
+    if (!recurrence) {
+      Alert.alert('Erro', 'Selecione uma recorrência.');
+      return;
+    }
+    if (!type) {
+      Alert.alert('Erro', 'Selecione o tipo de medicamento.');
       return;
     }
 
-    // Gera nova lista de horários
     const newTimes = calculateTimes(startTime, recurrence);
 
-    // Atualiza objeto com os dados modificados
     const updatedAlarm = {
       ...parsedMedication,
       dosage,
@@ -102,12 +115,11 @@ const EditAlarmes = () => {
       const stored = await AsyncStorage.getItem('medications');
       const medications: Medication[] = stored ? JSON.parse(stored) : [];
 
-      // Substitui o item pelo novo
       const index = medications.findIndex((item) => item.id === updatedAlarm.id);
       if (index !== -1) {
         medications[index] = updatedAlarm;
         await AsyncStorage.setItem('medications', JSON.stringify(medications));
-        router.push('/Alarmes'); // Volta para tela principal
+        router.push('/Alarmes');
       }
     } catch (error) {
       Alert.alert('Erro', 'Ocorreu um erro ao salvar o alarme.');
@@ -118,22 +130,23 @@ const EditAlarmes = () => {
     <View style={styles.container}>
       <Text style={styles.title}>Editar Alarme</Text>
 
-      {/* Campo para o nome do medicamento (não editável) */}
       <TextInput
         style={[styles.input, { backgroundColor: '#f0f0f0' }]}
         value={medicationName}
         editable={false}
       />
 
-      {/* Campo para a dosagem */}
       <TextInput
         style={styles.input}
         placeholder="Dosagem"
         value={dosage}
-        onChangeText={setDosage}
+        keyboardType="numeric"
+        onChangeText={(text) => {
+          if (validateDosage(text)) setDosage(text);
+        }}
+        maxLength={10}
       />
 
-      {/* Botão para selecionar o horário inicial */}
       <TouchableOpacity
         onPress={() => setShowTimePicker(true)}
         style={styles.timePickerButton}
@@ -143,7 +156,6 @@ const EditAlarmes = () => {
         </Text>
       </TouchableOpacity>
 
-      {/* Picker de horário (modal nativo) */}
       {showTimePicker && (
         <DateTimePicker
           value={startTime}
@@ -157,7 +169,6 @@ const EditAlarmes = () => {
         />
       )}
 
-      {/* Seletor de recorrência */}
       <Text style={styles.label}>Recorrência</Text>
       <Picker
         selectedValue={recurrence}
@@ -170,7 +181,6 @@ const EditAlarmes = () => {
         <Picker.Item label="24/24h" value="24/24h" />
       </Picker>
 
-      {/* Seletor de tipo de medicamento */}
       <Text style={styles.label}>Tipo</Text>
       <Picker
         selectedValue={type}
@@ -181,7 +191,6 @@ const EditAlarmes = () => {
         <Picker.Item label="ML" value="ML" />
       </Picker>
 
-      {/* Botão de salvar */}
       <TouchableOpacity onPress={handleSave} style={styles.button}>
         <Text style={styles.buttonText}>Salvar</Text>
       </TouchableOpacity>
@@ -189,7 +198,6 @@ const EditAlarmes = () => {
   );
 };
 
-// Estilos visuais da tela
 const styles = StyleSheet.create({
   container: {
     flex: 1,

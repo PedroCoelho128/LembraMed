@@ -2,42 +2,38 @@ import React, { useEffect, useRef } from 'react';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Stack } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { markTimeAsTaken, getAlarmsFromStorage } from '../utils/storage';
+import { agendarNotificacoes } from '../utils/notifications';
 
-// Definindo categoria de notificação para ações (opcional)
-Notifications.setNotificationCategoryAsync('ALARM_CATEGORY', [
-  {
-    identifier: 'TAKEN',
-    buttonTitle: 'Tomei o remédio',
-    options: { opensAppToForeground: true },
-  },
-]);
+// Extrai horário da notificação para marcar como tomado
+function extrairHorarioDaNotificacao(notification: Notifications.Notification): string | null {
+  const trigger = notification.request.trigger;
+  if (!trigger) return null;
+
+  if ('hour' in trigger && 'minute' in trigger) {
+    const h = String(trigger.hour).padStart(2, '0');
+    const m = String(trigger.minute).padStart(2, '0');
+    return `${h}:${m}`;
+  }
+
+  return null;
+}
 
 export default function App() {
   const notificationListener = useRef<any>(null);
   const responseListener = useRef<any>(null);
 
   useEffect(() => {
-    requestNotificationPermission();
+    checkAndRequestNotificationPermission();
 
     Notifications.setNotificationHandler({
-      handleNotification: async (notification) => {
-        // Salva dados da notificação para a tela de alarme
-        if (notification.request.content && notification.request.content.title) {
-          if (notification.request.content.title.startsWith('Hora do remédio:')) {
-            const medicationName = notification.request.content.title.split(': ')[1];
-            const horario = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            await AsyncStorage.setItem('latestAlarm', JSON.stringify({ nome: medicationName, horario }));
-          }
-        }
-        return {
-          shouldShowAlert: true,
-          shouldPlaySound: true,
-          shouldSetBadge: false,
-          shouldShowBanner: true,
-          shouldShowList: true,
-        };
-      },
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: false,
+        shouldShowBanner: true,
+        shouldShowList: true,
+      }),
     });
 
     notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
@@ -46,12 +42,26 @@ export default function App() {
 
     responseListener.current = Notifications.addNotificationResponseReceivedListener(async response => {
       const actionId = response.actionIdentifier;
-      const medicationId = response.notification.request.content?.data?.medicationId;
+      if (actionId === 'tomado') {
+        const notification = response.notification;
+        const medicationName = notification.request.content.data?.medicationName;
+        const alarmId = notification.request.content.data?.alarmId;
+        const time = extrairHorarioDaNotificacao(notification);
 
-      if (actionId === 'TAKEN') {
-        if (medicationId) {
-          console.log(`Medicamento ${medicationId} marcado como tomado.`);
-          // Aqui você pode atualizar AsyncStorage ou estado global
+        if (medicationName && alarmId && time) {
+          console.log(`Medicamento ${medicationName} tomado no horário ${time}`);
+
+          // Marca o horário como tomado no AsyncStorage
+          await markTimeAsTaken(String(alarmId), time);
+
+          // Reagende as notificações atualizadas
+          const alarms = await getAlarmsFromStorage();
+          const alarm = alarms.find(a => a.id === alarmId);
+          if (alarm) {
+            const intervaloHoras = Number(alarm.recurrence);
+            const horaInicial = new Date();
+            await agendarNotificacoes(alarm.id, alarm.name, horaInicial, intervaloHoras, alarm.takenTimes || []);
+          }
         }
       }
     });
@@ -64,14 +74,22 @@ export default function App() {
     };
   }, []);
 
-  async function requestNotificationPermission() {
-    if (Device.isDevice) {
-      const { status } = await Notifications.requestPermissionsAsync();
-      if (status !== 'granted') {
-        alert('Permissão para notificações negada! O app pode não funcionar corretamente.');
-      }
-    } else {
+  async function checkAndRequestNotificationPermission() {
+    if (!Device.isDevice) {
       alert('Use um dispositivo físico para receber notificações.');
+      return;
+    }
+
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+
+    if (existingStatus !== 'granted') {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+
+    if (finalStatus !== 'granted') {
+      alert('Permissão para notificações negada! O app pode não funcionar corretamente.');
     }
   }
 

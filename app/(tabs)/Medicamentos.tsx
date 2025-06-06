@@ -8,51 +8,61 @@ import {
   StyleSheet,
   Platform,
 } from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker'; // Componente para seleção de hora
-import { Picker } from '@react-native-picker/picker'; // Componente dropdown
-import AsyncStorage from '@react-native-async-storage/async-storage'; // Armazenamento local
-import { useRouter } from 'expo-router'; // Navegação entre telas
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { Picker } from '@react-native-picker/picker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useRouter } from 'expo-router';
 
 const AddMedication = () => {
-  // Estados para armazenar os dados do formulário
   const [medicationName, setMedicationName] = useState('');
   const [dosage, setDosage] = useState('');
   const [recurrence, setRecurrence] = useState('8/8h');
   const [type, setType] = useState('Comprimido');
   const [startTime, setStartTime] = useState(new Date());
   const [showTimePicker, setShowTimePicker] = useState(false);
-  const router = useRouter(); // Hook de navegação
+  const router = useRouter();
 
-  // Função chamada ao salvar os dados
   const handleSave = async () => {
-    if (!medicationName || !dosage) {
-      Alert.alert('Preencha todos os campos');
+    // Validação do nome
+    if (!medicationName.trim()) {
+      Alert.alert('Erro', 'Por favor, insira o nome do medicamento.');
+      return;
+    }
+    if (medicationName.length > 50) {
+      Alert.alert('Erro', 'O nome do medicamento deve ter no máximo 50 caracteres.');
       return;
     }
 
-    // Gera os horários com base na hora inicial e recorrência (strings HH:mm)
+    // Validação da dosagem (permite números decimais)
+    if (!dosage.trim()) {
+      Alert.alert('Erro', 'Por favor, insira a dosagem.');
+      return;
+    }
+    const dosageNumber = Number(dosage.replace(',', '.')); // aceita vírgula como decimal
+    if (isNaN(dosageNumber)) {
+      Alert.alert('Erro', 'A dosagem deve ser um número válido.');
+      return;
+    }
+
     const times = calculateTimes(startTime, recurrence);
 
     const newMedication = {
-      id: new Date().toISOString(), // Gera um ID único
-      name: medicationName,
-      dosage,
+      id: new Date().toISOString(),
+      name: medicationName.trim(),
+      dosage: dosage.trim(),
       recurrence,
       type,
-      times, // array de strings no formato HH:mm
+      times,
     };
 
-    // Recupera medicamentos salvos, adiciona o novo e salva novamente
     const stored = await AsyncStorage.getItem('medications');
     const meds = stored ? JSON.parse(stored) : [];
     meds.push(newMedication);
     await AsyncStorage.setItem('medications', JSON.stringify(meds));
 
-    // Redireciona para a tela de alarmes
     router.push('/Alarmes');
   };
 
-  // Calcula os horários dos alarmes com base na recorrência e retorna strings HH:mm
   const calculateTimes = (initialTime: Date, recurrence: string) => {
     const times: string[] = [];
     let incrementHours = 0;
@@ -86,7 +96,6 @@ const AddMedication = () => {
     return times;
   };
 
-  // Formata o horário para exibição no botão
   const formatTime = (date: Date) => {
     return `${date.getHours().toString().padStart(2, '0')}:${date
       .getMinutes()
@@ -98,23 +107,23 @@ const AddMedication = () => {
     <View style={styles.container}>
       <Text style={styles.title}>Adicionar Medicação</Text>
 
-      {/* Nome do medicamento */}
       <TextInput
         style={styles.input}
         placeholder="Nome do medicamento"
         value={medicationName}
         onChangeText={setMedicationName}
+        maxLength={50}
       />
 
-      {/* Dosagem */}
       <TextInput
         style={styles.input}
         placeholder="Dosagem"
         value={dosage}
         onChangeText={setDosage}
+        keyboardType="decimal-pad"
+        maxLength={10}
       />
 
-      {/* Selecionar hora inicial */}
       <TouchableOpacity
         onPress={() => setShowTimePicker(true)}
         style={styles.timePickerButton}
@@ -124,7 +133,6 @@ const AddMedication = () => {
         </Text>
       </TouchableOpacity>
 
-      {/* Componente de seleção de hora */}
       {showTimePicker && (
         <DateTimePicker
           value={startTime}
@@ -138,7 +146,6 @@ const AddMedication = () => {
         />
       )}
 
-      {/* Recorrência */}
       <Text style={styles.label}>Recorrência</Text>
       <Picker
         selectedValue={recurrence}
@@ -151,7 +158,6 @@ const AddMedication = () => {
         <Picker.Item label="24/24h" value="24/24h" />
       </Picker>
 
-      {/* Tipo de medicação */}
       <Text style={styles.label}>Tipo</Text>
       <Picker
         selectedValue={type}
@@ -162,7 +168,6 @@ const AddMedication = () => {
         <Picker.Item label="ML" value="ML" />
       </Picker>
 
-      {/* Botão de salvar */}
       <TouchableOpacity onPress={handleSave} style={styles.button}>
         <Text style={styles.buttonText}>Salvar</Text>
       </TouchableOpacity>
@@ -170,7 +175,6 @@ const AddMedication = () => {
   );
 };
 
-// Estilos do componente
 const styles = StyleSheet.create({
   container: {
     flex: 1,

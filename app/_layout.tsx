@@ -1,12 +1,23 @@
-//app/_layout.tsx
+// app/_layout.tsx
+
 // Importa o componente Stack do expo-router para gerenciar a navegação em pilha
 import { Stack } from 'expo-router';
 
-// Componente principal responsável pela configuração das rotas do app
+// Componente principal que configura o layout raiz da navegação do app
 export default function RootLayout() {
-  // Retorna o Stack Navigator com a opção de esconder o cabeçalho padrão (headerShown: false)
-  return <Stack screenOptions={{ headerShown: false }} />;
+  // Retorna o Stack Navigator com opção para esconder o cabeçalho padrão (header)
+  return (
+    <Stack
+      screenOptions={{
+        headerShown: false, // Oculta o cabeçalho nativo das telas
+      }}
+    />
+  );
 }
-// O Stack Navigator é uma forma de navegar entre diferentes telas do aplicativo, permitindo empilhar telas e voltar para telas anteriores.
-// O RootLayout é o ponto de entrada para a navegação do aplicativo, onde todas as rotas são definidas.
-// O Stack é um componente que permite criar uma navegação em pilha, onde cada nova tela é empilhada sobre a anterior.
+
+/*
+Explicação:
+- O Stack Navigator permite empilhar telas, navegando entre elas com facilidade.
+- O RootLayout é o componente de nível superior que engloba toda a navegação.
+- Com headerShown: false, você pode criar cabeçalhos personalizados em cada tela, se desejar.
+*/

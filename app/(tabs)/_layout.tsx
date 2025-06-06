@@ -1,49 +1,62 @@
 //(tabs)/_layout.tsx
-// Importa os ícones da biblioteca Ionicons (estilo iOS) do pacote Expo
+
+// Importa os ícones Ionicons do pacote Expo Vector Icons
 import { Ionicons } from '@expo/vector-icons';
 
-// Importa o componente Tabs da biblioteca expo-router para navegação por abas
+// Importa o componente Tabs do expo-router para navegação por abas
 import { Tabs } from 'expo-router';
 
-// Função que define a estrutura de navegação por abas do aplicativo
+// Importa hook para detectar o tema do sistema (claro ou escuro)
+import { useColorScheme } from 'react-native';
+
+// Componente que define a estrutura de navegação por abas do app
 export default function TabLayout() {
+  // Detecta se o usuário está no tema claro ou escuro
+  const colorScheme = useColorScheme();
+
   return (
     <Tabs
-      // Define as opções de configuração da aba para cada rota
+      // Configura opções para cada aba dinamicamente, baseado na rota
       screenOptions={({ route }) => ({
-        // Esconde o cabeçalho padrão da navegação
+        // Esconde o cabeçalho padrão da navegação (top bar)
         headerShown: false,
 
-        // Define o ícone da aba com base no nome da rota
-        tabBarIcon: ({ color }) => {
+        // Define o ícone da aba, recebe cor e tamanho automaticamente
+        tabBarIcon: ({ color, size }) => {
           let iconName: keyof typeof Ionicons.glyphMap;
 
-          // Escolhe o ícone baseado no nome da rota
+          // Define ícone conforme nome da rota
           if (route.name === 'Medicamentos') iconName = 'medkit';
           else if (route.name === 'Alarmes') iconName = 'alarm';
-          else iconName = 'ellipse'; // Ícone padrão caso a rota não seja reconhecida
+          else iconName = 'ellipse'; // ícone padrão para outras abas
 
-          // Retorna o componente de ícone com o nome e cor definidos
-          return <Ionicons name={iconName} size={24} color={color} />;
+          // Retorna o componente de ícone com o nome e as propriedades
+          return <Ionicons name={iconName} size={size} color={color} />;
         },
 
-        // Estilo do texto das labels das abas
+        // Estilo do texto das labels das abas (fonte e peso)
         tabBarLabelStyle: {
           fontSize: 14,
           fontWeight: '500',
         },
 
-        // Cor das abas ativas e inativas
-        tabBarActiveTintColor: '#3498db',   // azul
-        tabBarInactiveTintColor: '#666',    // cinza escuro
+        // Cor do texto da aba ativa
+        tabBarActiveTintColor: '#3498db', // azul
 
-        // Estilização da barra de abas
+        // Cor do texto da aba inativa
+        tabBarInactiveTintColor: '#666',  // cinza escuro
+
+        // Cor de fundo da aba ativa, muda conforme tema do sistema
+        tabBarActiveBackgroundColor: colorScheme === 'dark' ? '#222' : '#e6f0ff',
+
+        // Estilização geral da barra de abas
         tabBarStyle: {
-          height: 60,         // altura da barra
-          paddingBottom: 5,   // espaço inferior
+          height: 60,                 // altura da barra
+          paddingBottom: 5,           // espaço inferior
+          backgroundColor:            // fundo da barra muda conforme tema
+            colorScheme === 'dark' ? '#121212' : '#fff',
         },
       })}
     />
   );
 }
-// O código acima define a estrutura de navegação por abas do aplicativo usando o expo-router.
