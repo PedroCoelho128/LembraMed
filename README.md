@@ -12,7 +12,6 @@ LembraMed/
 │   │   ├── _layout.tsx                 # Layout das abas
 │   │   ├── Alarmes.tsx                 # Tela principal com lista de alarmes
 │   │   ├── Medicamentos.tsx            # Tela de cadastro de medicamento
-│   ├── AlarmNotification.tsx           # Tela exibida quando o alarme toca
 │   ├── editAlarmes.tsx                 # Tela de edição de alarmes
 │   ├── app.tsx                         # Inicialização do app
 │   ├── index.tsx                       # Tela inicial (pode redirecionar)
@@ -61,10 +60,6 @@ LembraMed/
 ✅ Alarmes funcionais com notificações locais
 
 ✅ Alarme aparece mesmo com o celular bloqueado
-
-✅ Tela de alarme com botão:
-
--Tomei meu remédio
 
 # 🧠 Tecnologias Utilizadas
 
